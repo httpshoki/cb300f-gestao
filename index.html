@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+  <meta name="description" content="Gestão de manutenções e revisões da Honda CB300F">
+  <title>Gestão CB300F</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8f9fa; }
+    .container { max-width: 800px; }
+    .alert { margin-top: 20px; }
+    table { margin-top: 20px; }
+    .form-section { margin-bottom: 30px; }
+    .auth-section { display: none; }
+    .main-content { display: none; }
+    @media (max-width: 576px) {
+      h1 { font-size: 1.5rem; }
+      h3 { font-size: 1.2rem; }
+      .form-control, .btn { font-size: 0.9rem; }
+      .table { font-size: 0.85rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <!-- Auth Section -->
+    <div class="auth-section" id="authSection">
+      <h1 class="text-center mb-4">Gestão CB300F - Login</h1>
+      <div class="card p-4">
+        <h3>Entrar ou Criar Conta</h3>
+        <form id="authForm">
+          <div class="mb-3">
+            <label for="email" class="form-label">E-mail</label>
+            <input type="email" class="form-control" id="email" required>
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Senha</label>
+            <input type="password" class="form-control" id="password" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100" id="loginBtn">Entrar</button>
+          <button type="button" class="btn btn-secondary w-100 mt-2" id="signupBtn">Criar Conta</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-center">Gestão da Minha CB300F</h1>
+        <button class="btn btn-danger" id="logoutBtn">Sair</button>
+      </div>
+
+      <!-- Dados da Moto -->
+      <div class="form-section card p-4">
+        <h3>Dados da Moto</h3>
+        <form id="motoForm">
+          <div class="mb-3">
+            <label for="modelo" class="form-label">Modelo</label>
+            <input type="text" class="form-control" id="modelo" value="Honda CB300F" readonly>
+          </div>
+          <div class="mb-3">
+            <label for="ano" class="form-label">Ano</label>
+            <input type="number" class="form-control" id="ano" placeholder="Ex: 2024" required>
+          </div>
+          <div class="mb-3">
+            <label for="kmAtual" class="form-label">Quilometragem Atual (km)</label>
+            <input type="number" class="form-control" id="kmAtual" placeholder="Ex: 12000" required>
+          </div>
+          <div class="mb-3">
+            <label for="ultimaRevisao" class="form-label">Data da Última Revisão</label>
+            <input type="date" class="form-control" id="ultimaRevisao" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Salvar Dados</button>
+        </form>
+      </div>
+
+      <!-- Registrar Manutenção -->
+      <div class="form-section card p-4">
+        <h3>Registrar Manutenção</h3>
+        <form id="manutencaoForm">
+          <div class="mb-3">
+            <label for="tipo" class="form-label">Tipo</label>
+            <select class="form-control" id="tipo" required>
+              <option value="Troca de Óleo">Troca de Óleo (3.000 km)</option>
+              <option value="Revisão">Revisão (6.000 km ou 6 meses)</option>
+              <option value="Inspeção de Freios">Inspeção de Freios</option>
+              <option value="Troca de Pneus">Troca de Pneus</option>
+              <option value="Outros">Outros</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="dataManutencao" class="form-label">Data</label>
+            <input type="date" class="form-control" id="dataManutencao" required>
+          </div>
+          <div class="mb-3">
+            <label for="kmManutencao" class="form-label">Quilometragem (km)</label>
+            <input type="number" class="form-control" id="kmManutencao" required>
+          </div>
+          <div class="mb-3">
+            <label for="observacoes" class="form-label">Observações</label>
+            <textarea class="form-control" id="observacoes" rows="3"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Adicionar Manutenção</button>
+        </form>
+      </div>
+
+      <!-- Próxima Manutenção -->
+      <div id="proximaManutencao" class="alert alert-info" role="alert" style="display: none;">
+        <h4>Próxima Manutenção/Revisão</h4>
+        <p id="proximaMensagem"></p>
+      </div>
+
+      <!-- Histórico de Manutenções -->
+      <div class="card p-4">
+        <h3>Histórico de Manutenções</h3>
+        <table class="table table-striped table-responsive">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Data</th>
+              <th>Quilometragem (km)</th>
+              <th>Observações</th>
+            </tr>
+          </thead>
+          <tbody id="historicoTabela"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Configuração do Firebase (SUBSTITUA COM SUAS CREDENCIAIS)
+    const firebaseConfig = {
+      apiKey: "AIzaSyAQXoXxxlgeqfONoFr9rQ-xDzhdYFSD0yo",
+      authDomain: "cb300f-gestao.firebaseapp.com",
+      projectId: "cb300f-gestao",
+      storageBucket: "cb300f-gestao.firebasestorage.app",
+      messagingSenderId: "396966230551",
+      appId: "1:396966230551:web:f4772723e62deb25e3ba52"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Elementos do DOM
+    const authSection = document.getElementById('authSection');
+    const mainContent = document.getElementById('mainContent');
+    const loginBtn = document.getElementById('loginBtn');
+    const signupBtn = document.getElementById('signupBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    let moto = {};
+    let manutencoes = [];
+
+    // Verificar estado de autenticação
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        authSection.style.display = 'none';
+        mainContent.style.display = 'block';
+        carregarDados(user.uid);
+      } else {
+        authSection.style.display = 'block';
+        mainContent.style.display = 'none';
+      }
+    });
+
+    // Login ou Cadastro
+    document.getElementById('authForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      auth.signInWithEmailAndPassword(email, password)
+        .catch((error) => {
+          alert('Erro ao entrar: ' + error.message);
+        });
+    });
+
+    signupBtn.addEventListener('click', () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(() => alert('Conta criada com sucesso! Você já está logado.'))
+        .catch((error) => alert('Erro ao criar conta: ' + error.message));
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      auth.signOut().then(() => {
+        alert('Você saiu da conta.');
+      });
+    });
+
+    // Carregar dados do Firestore
+    function carregarDados(uid) {
+      // Carregar dados da moto
+      db.collection('users').doc(uid).get()
+        .then((doc) => {
+          if (doc.exists) {
+            moto = doc.data().moto || {};
+            document.getElementById('ano').value = moto.ano || '';
+            document.getElementById('kmAtual').value = moto.kmAtual || '';
+            document.getElementById('ultimaRevisao').value = moto.ultimaRevisao || '';
+          }
+          calcularProximaManutencao();
+        });
+
+      // Carregar manutenções
+      db.collection('users').doc(uid).collection('manutencoes').get()
+        .then((snapshot) => {
+          manutencoes = [];
+          snapshot.forEach((doc) => manutencoes.push(doc.data()));
+          atualizarHistorico();
+          calcularProximaManutencao();
+        });
+    }
+
+    // Salvar dados da moto
+    document.getElementById('motoForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const user = auth.currentUser;
+      if (!user) return;
+      moto = {
+        modelo: document.getElementById('modelo').value,
+        ano: document.getElementById('ano').value,
+        kmAtual: parseInt(document.getElementById('kmAtual').value),
+        ultimaRevisao: document.getElementById('ultimaRevisao').value
+      };
+      db.collection('users').doc(user.uid).set({ moto })
+        .then(() => {
+          alert('Dados da moto salvos com sucesso!');
+          calcularProximaManutencao();
+        });
+    });
+
+    // Adicionar manutenção
+    document.getElementById('manutencaoForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const user = auth.currentUser;
+      if (!user) return;
+      const manutencao = {
+        tipo: document.getElementById('tipo').value,
+        data: document.getElementById('dataManutencao').value,
+        km: parseInt(document.getElementById('kmManutencao').value),
+        observacoes: document.getElementById('observacoes').value
+      };
+      db.collection('users').doc(user.uid).collection('manutencoes').add(manutencao)
+        .then(() => {
+          manutencoes.push(manutencao);
+          document.getElementById('manutencaoForm').reset();
+          atualizarHistorico();
+          calcularProximaManutencao();
+          alert('Manutenção registrada com sucesso!');
+        });
+    });
+
+    // Atualizar tabela de histórico
+    function atualizarHistorico() {
+      const tbody = document.getElementById('historicoTabela');
+      tbody.innerHTML = '';
+      manutencoes.forEach((m) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${m.tipo}</td>
+          <td>${new Date(m.data).toLocaleDateString('pt-BR')}</td>
+          <td>${m.km}</td>
+          <td>${m.observacoes || '-'}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Calcular próxima manutenção/revisão
+    function calcularProximaManutencao() {
+      if (!moto.kmAtual || !moto.ultimaRevisao) return;
+
+      const kmAtual = moto.kmAtual;
+      const dataUltimaRevisao = new Date(moto.ultimaRevisao);
+      const hoje = new Date();
+      const proximaMensagem = document.getElementById('proximaMensagem');
+      const proximaDiv = document.getElementById('proximaManutencao');
+
+      // Última troca de óleo
+      const ultimaTrocaOleo = manutencoes
+        .filter(m => m.tipo === 'Troca de Óleo')
+        .sort((a, b) => new Date(b.data) - new Date(a.data))[0];
+
+      // Última revisão
+      const ultimaRevisao = manutencoes
+        .filter(m => m.tipo === 'Revisão')
+        .sort((a, b) => new Date(b.data) - new Date(a.data))[0];
+
+      let mensagens = [];
+
+      // Troca de óleo (3.000 km)
+      if (ultimaTrocaOleo) {
+        const kmDesdeOleo = kmAtual - ultimaTrocaOleo.km;
+        if (kmDesdeOleo >= 3000) {
+          mensagens.push('Troca de óleo necessária imediatamente!');
+        } else {
+          const kmRestante = 3000 - kmDesdeOleo;
+          mensagens.push(`Próxima troca de óleo em ${kmRestante} km.`);
+        }
+      } else {
+        mensagens.push('Registre a última troca de óleo para acompanhamento.');
+      }
+
+      // Revisão (6.000 km ou 6 meses)
+      if (ultimaRevisao || moto.ultimaRevisao) {
+        const kmUltimaRevisao = ultimaRevisao ? ultimaRevisao.km : (moto.kmAtual || 0);
+        const dataReferencia = ultimaRevisao ? new Date(ultimaRevisao.data) : dataUltimaRevisao;
+        const kmDesdeRevisao = kmAtual - kmUltimaRevisao;
+        const mesesDesdeRevisao = (hoje - dataReferencia) / (1000 * 60 * 60 * 24 * 30);
+
+        if (kmDesdeRevisao >= 6000 || mesesDesdeRevisao >= 6) {
+          mensagens.push('Revisão necessária imediatamente!');
+        } else {
+          const kmRestante = 6000 - kmDesdeRevisao;
+          const dataProximaRevisao = new Date(dataReferencia);
+          dataProximaRevisao.setMonth(dataReferencia.getMonth() + 6);
+          mensagens.push(`Próxima revisão em ${kmRestante} km ou até ${dataProximaRevisao.toLocaleDateString('pt-BR')}.`);
+        }
+      } else {
+        mensagens.push('Registre a última revisão para acompanhamento.');
+      }
+
+      proximaMensagem.innerHTML = mensagens.join('<br>');
+      proximaDiv.style.display = 'block';
+    }
+  </script>
